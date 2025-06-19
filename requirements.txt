@@ -3,3 +3,4 @@ python-dotenv
 azure-ai-textanalytics
 pypdf
 python-docx
+gunicorn
