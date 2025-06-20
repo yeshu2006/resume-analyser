@@ -14,7 +14,7 @@ A simple AI-powered Resume Analyzer built with Python and Azure AI services that
 
 - **Backend**: Python, Flask
 - **AI Service**: Azure AI Document Intelligence
-- **Frontend**: HTML, CSS, JavaScript
+- **Frontend**: HTML, CSS
 - **Deployment**: [Render](https://render.com/)
 
 ## 🚀 Setup Instructions
