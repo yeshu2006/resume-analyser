@@ -4,19 +4,17 @@ from flask import Flask, render_template, request, flash, redirect, url_for
 from werkzeug.utils import secure_filename
 from analyzer import analyze_resume_with_job
 
-# Configuration
 UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {"pdf", "docx"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  # Needed for flash()
+app.secret_key = "supersecretkey"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_SIZE
 
 
-def allowed_file(filename):
-    """Check if uploaded file extension is allowed."""
+def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
@@ -27,7 +25,6 @@ def index():
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    """Handles file upload + JD matching + analysis."""
     if "resume" not in request.files:
         flash("No file uploaded.")
         return redirect(url_for("index"))
@@ -48,7 +45,6 @@ def analyze():
         return redirect(url_for("index"))
 
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
     filename = secure_filename(resume.filename)
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     resume.save(file_path)
@@ -56,7 +52,6 @@ def analyze():
     try:
         result = analyze_resume_with_job(file_path, jd)
         return render_template("index.html", result=result, job_description=jd)
-
     except Exception as e:
         print("ERROR:", e)
         flash(f"An error occurred while analyzing the resume: {e}")

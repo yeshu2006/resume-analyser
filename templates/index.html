@@ -1,105 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Resume Analyzer + Job Match</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8" />
+  <title>Resume Analyzer Using Azure AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
-
 <body>
-<div class="container">
-  <header>
-    <h1>Resume Analyzer Using Azure AI</h1>
-    <p class="subtitle">Upload your resume and match it with any Job Description using Azure AI</p>
-  </header>
+  <div class="container">
+    <header>
+      <h1>Resume Analyzer & Job Match</h1>
+      <p class="subtitle">
+        Upload your resume and match it against a Job Description using Azure AI.
+      </p>
+    </header>
 
-  <!-- Flash Messages -->
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <div class="flash">
-        {% for msg in messages %}
-          <p>{{ msg }}</p>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
-
-  <!-- Upload Form -->
-  <section class="upload-section">
-    <form action="{{ url_for('analyze') }}" method="POST" enctype="multipart/form-data">
-      <label>Upload Resume (PDF or DOCX)</label>
-      <input type="file" name="resume" required>
-
-      <label>Paste Job Description</label>
-      <textarea name="job_description" rows="6" required>{{ job_description }}</textarea>
-
-      <button type="submit">Analyze Resume</button>
-    </form>
-  </section>
-
-  <!-- Results -->
-  {% if result %}
-    <section class="results">
-      <h2>Analysis Result</h2>
-
-      <div class="card">
-        <h3>Basic Details</h3>
-        <p><strong>Name:</strong> {{ result.name or "Not detected" }}</p>
-        <p><strong>Email:</strong> {{ result.email or "Not detected" }}</p>
-        <p><strong>Phone:</strong> {{ result.phone or "Not detected" }}</p>
-      </div>
-
-      <div class="card">
-        <h3>Match Score</h3>
-        <p class="score">{{ result.match_percentage }}%</p>
-      </div>
-
-      <div class="card">
-        <h3>Matched Keywords</h3>
-        {% if result.matched_keywords %}
-          <ul>
-            {% for kw in result.matched_keywords %}
-              <li class="tag success">{{ kw }}</li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p>No keywords matched.</p>
-        {% endif %}
-      </div>
-
-      <div class="card">
-        <h3>Missing Job Keywords</h3>
-        {% if result.missing_keywords %}
-          <ul>
-            {% for kw in result.missing_keywords %}
-              <li class="tag danger">{{ kw }}</li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p>No missing keywords.</p>
-        {% endif %}
-      </div>
-
-      <div class="card">
-        <h3>Missing Resume Sections</h3>
-        {% if result.missing_sections %}
-          <p>{{ result.missing_sections | join(", ") }}</p>
-        {% else %}
-          <p>All essential sections found.</p>
-        {% endif %}
-      </div>
-
-      <div class="card">
-        <h3>Suggestions</h3>
-        <ul>
-          {% for s in result.suggestions %}
-            <li>{{ s }}</li>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash">
+          {% for msg in messages %}
+            <p>{{ msg }}</p>
           {% endfor %}
-        </ul>
-      </div>
+        </div>
+      {% endif %}
+    {% endwith %}
 
+    <!-- Upload Form -->
+    <section class="upload-section">
+      <form action="{{ url_for('analyze') }}" method="POST" enctype="multipart/form-data">
+        <label for="resume">Upload Resume (PDF / DOCX)</label>
+        <input
+          type="file"
+          name="resume"
+          id="resume"
+          accept=".pdf,.docx"
+          required
+        />
+
+        <label for="job_description">Paste Job Description</label>
+        <textarea
+          name="job_description"
+          id="job_description"
+          rows="6"
+          placeholder="Paste the Job Description here..."
+          autocomplete="off"
+          required
+        >{{ job_description or '' }}</textarea>
+
+        <button type="submit">Analyze & Match</button>
+      </form>
     </section>
-  {% endif %}
-</div>
+
+    <!-- Results -->
+    {% if result %}
+      <section class="results-section">
+        <h2>Analysis Summary</h2>
+
+        <!-- Job Description Preview -->
+        <div class="card">
+          <h3>Job Description Used</h3>
+          <p class="jd-preview">
+            {{ result.job_description[:400] }}{% if result.job_description and result.job_description|length > 400 %}...{% endif %}
+          </p>
+        </div>
+
+        <!-- Basic Details -->
+        <div class="card">
+          <h3>Basic Details</h3>
+          
+          <p><strong>Email:</strong> {{ result.email or "Not detected" }}</p>
+          <p><strong>Phone:</strong> {{ result.phone or "Not detected" }}</p>
+        </div>
+
+        <!-- Graphical Match Score -->
+        <div class="card">
+          <h3>Job Match Score</h3>
+          <div class="meter">
+            <span style="width: {{ result.match_percentage }}%"></span>
+          </div>
+          <p class="score-text">{{ result.match_percentage }}% match with JD</p>
+        </div>
+
+        <!-- Skills Detected -->
+        <div class="card">
+          <h3>Skills Detected ({{ result.skills_detected|length }})</h3>
+          {% if result.skills_detected %}
+            <ul class="chips">
+              {% for sk in result.skills_detected %}
+                <li class="chip">{{ sk }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>No specific skills detected.</p>
+          {% endif %}
+        </div>
+
+        <!-- Experience Summary -->
+        <div class="card">
+          <h3>Experience Summary ({{ result.experience_summary|length }} lines)</h3>
+          {% if result.experience_summary %}
+            <ul>
+              {% for line in result.experience_summary %}
+                <li>{{ line }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>
+              No clear experience lines detected. Consider adding an Experience section
+              with role, company, duration, and responsibilities.
+            </p>
+          {% endif %}
+        </div>
+
+        <!-- Matched Keywords -->
+        <div class="card">
+          <h3>Matched Job Keywords</h3>
+          {% if result.matched_keywords %}
+            <ul class="chips">
+              {% for kw in result.matched_keywords %}
+                <li class="chip chip-success">{{ kw }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>No strong keyword matches found.</p>
+          {% endif %}
+        </div>
+
+        <!-- Missing Keywords -->
+        <div class="card">
+          <h3>Missing Job Keywords</h3>
+          {% if result.missing_keywords %}
+            <ul class="chips">
+              {% for kw in result.missing_keywords %}
+                <li class="chip chip-danger">{{ kw }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>No major missing keywords detected.</p>
+          {% endif %}
+        </div>
+
+        <!-- Missing Sections -->
+        <div class="card">
+          <h3>Missing Resume Sections</h3>
+          {% if result.missing_sections %}
+            <p>{{ result.missing_sections | join(", ") }}</p>
+          {% else %}
+            <p>All core sections appear to be present.</p>
+          {% endif %}
+        </div>
+
+        <!-- Suggestions -->
+        <div class="card">
+          <h3>Suggestions</h3>
+          <ul>
+            {% for s in result.suggestions %}
+              <li>{{ s }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+    {% endif %}
+  </div>
 </body>
 </html>
