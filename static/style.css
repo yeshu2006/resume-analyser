@@ -1,0 +1,100 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+}
+
+.container {
+    max-width: 900px;
+    margin: 40px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+header {
+    text-align: center;
+}
+
+header h1 {
+    margin-bottom: 5px;
+    color: #0a66c2;
+}
+
+.subtitle {
+    margin-top: 0;
+    color: #555;
+}
+
+.upload-section form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.upload-section input[type="file"],
+.upload-section textarea {
+    padding: 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+button {
+    background: #0a66c2;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #004182;
+}
+
+.flash {
+    background: #fff4cd;
+    border: 1px solid #ffe58f;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+}
+
+.results .card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 18px;
+    border-left: 5px solid #0a66c2;
+}
+
+.card h3 {
+    margin-top: 0;
+}
+
+.tag {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    margin: 4px;
+    font-size: 14px;
+}
+
+.tag.success {
+    background: #d1f3d1;
+    color: #115c21;
+}
+
+.tag.danger {
+    background: #ffd7d7;
+    color: #9b1212;
+}
+
+.score {
+    font-size: 42px;
+    color: #0a66c2;
+    font-weight: bold;
+}

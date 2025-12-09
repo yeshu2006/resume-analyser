@@ -1,77 +1,105 @@
-<!-- File: templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Resume Analyzer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary-color: #0078D4;
-            --success-color: #107C10;
-            --error-color: #D83B01;
-            --warning-color: #FFB900;
-            --light-bg: #f8f9fa;
-        }
-        body { font-family: 'Poppins', sans-serif; margin: 0; background-color: var(--light-bg); color: #333; }
-        header { background-color: var(--primary-color); color: white; padding: 25px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        main { max-width: 800px; margin: 2em auto; padding: 2em; background-color: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        form { display: flex; flex-direction: column; gap: 1.5em; }
-        label { font-weight: 600; }
-        textarea, input[type="file"]::file-selector-button { font-family: inherit; padding: 12px; border: 1px solid #ccc; border-radius: 8px; }
-        input[type="submit"] { background-color: var(--primary-color); color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: 600; transition: background-color 0.3s ease; }
-        input[type="submit"]:hover { background-color: #005a9e; }
-        .results-container, .error-box { margin-top: 2em; padding: 1.5em; border-radius: 12px; }
-        .error-box { background-color: #fff0f0; border: 1px solid var(--error-color); color: var(--error-color); }
-        h2 { text-align: center; color: var(--primary-color); }
-        h3 { font-size: 1.2em; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 1.5em; }
-        ul { list-style-type: none; padding-left: 0; }
-        li { padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; font-weight: 500; }
-        .matched { background-color: #e6f7e6; border-left: 5px solid var(--success-color); }
-        .missing { background-color: #fff0f0; border-left: 5px solid var(--error-color); }
-        .suggestion { background-color: #fff9e6; border-left: 5px solid var(--warning-color); }
-        .score { font-size: 2em; font-weight: 700; text-align: center; color: var(--primary-color); margin: 1em 0; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Resume Analyzer + Job Match</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
-    <header><h1>AI Resume Analyzer</h1></header>
-    <main>
-        <p>Get instant, AI-driven feedback. Upload your resume and paste a job description to see how you stack up.</p>
-        <form action="/analyze" method="post" enctype="multipart/form-data">
-            <label for="resume">Step 1: Upload Your Resume (PDF or DOCX)</label>
-            <input type="file" id="resume" name="resume" accept=".pdf,.docx" required>
-            <label for="job_description">Step 2: Paste the Job Description</label>
-            <textarea id="job_description" name="job_description" rows="10" placeholder="Paste the entire job description here..." required></textarea>
-            <input type="submit" value="Analyze My Application">
-        </form>
+<div class="container">
+  <header>
+    <h1>Resume Analyzer Using Azure AI</h1>
+    <p class="subtitle">Upload your resume and match it with any Job Description using Azure AI</p>
+  </header>
 
-        {% if error %}
-            <div class="error-box"><strong>Error:</strong> {{ error }}</div>
-        {% endif %}
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flash">
+        {% for msg in messages %}
+          <p>{{ msg }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
 
-        {% if results %}
-        <div class="results-container">
-            <h2>Analysis Report</h2>
-            {% if results.error %}
-                <div class="error-box"><strong>Analysis Failed:</strong> {{ results.error }}</div>
-            {% else %}
-                <div class="score">Match Score: {{ results.match_score }}</div>
-                <h3><span style="color:var(--success-color)">✔</span> Matched Keywords</h3>
-                <ul>
-                    {% for skill in results.matched_skills %} <li class="matched">{{ skill|capitalize }}</li> {% else %} <li>No keyword matches found.</li> {% endfor %}
-                </ul>
-                <h3><span style="color:var(--error-color)">✖</span> Missing Keywords to Add</h3>
-                <ul>
-                    {% for skill in results.missing_skills %} <li class="missing">{{ skill|capitalize }}</li> {% else %} <li>Great job! No missing keywords were identified.</li> {% endfor %}
-                </ul>
-                <h3><span style="color:var(--warning-color)">✎</span> Content & Formatting Tips</h3>
-                <ul>
-                    {% for suggestion in results.formatting_suggestions %} <li class="suggestion">{{ suggestion }}</li> {% else %} <li>No specific suggestions at this time. Looks good!</li> {% endfor %}
-                </ul>
-            {% endif %}
-        </div>
+  <!-- Upload Form -->
+  <section class="upload-section">
+    <form action="{{ url_for('analyze') }}" method="POST" enctype="multipart/form-data">
+      <label>Upload Resume (PDF or DOCX)</label>
+      <input type="file" name="resume" required>
+
+      <label>Paste Job Description</label>
+      <textarea name="job_description" rows="6" required>{{ job_description }}</textarea>
+
+      <button type="submit">Analyze Resume</button>
+    </form>
+  </section>
+
+  <!-- Results -->
+  {% if result %}
+    <section class="results">
+      <h2>Analysis Result</h2>
+
+      <div class="card">
+        <h3>Basic Details</h3>
+        <p><strong>Name:</strong> {{ result.name or "Not detected" }}</p>
+        <p><strong>Email:</strong> {{ result.email or "Not detected" }}</p>
+        <p><strong>Phone:</strong> {{ result.phone or "Not detected" }}</p>
+      </div>
+
+      <div class="card">
+        <h3>Match Score</h3>
+        <p class="score">{{ result.match_percentage }}%</p>
+      </div>
+
+      <div class="card">
+        <h3>Matched Keywords</h3>
+        {% if result.matched_keywords %}
+          <ul>
+            {% for kw in result.matched_keywords %}
+              <li class="tag success">{{ kw }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>No keywords matched.</p>
         {% endif %}
-    </main>
+      </div>
+
+      <div class="card">
+        <h3>Missing Job Keywords</h3>
+        {% if result.missing_keywords %}
+          <ul>
+            {% for kw in result.missing_keywords %}
+              <li class="tag danger">{{ kw }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>No missing keywords.</p>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h3>Missing Resume Sections</h3>
+        {% if result.missing_sections %}
+          <p>{{ result.missing_sections | join(", ") }}</p>
+        {% else %}
+          <p>All essential sections found.</p>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h3>Suggestions</h3>
+        <ul>
+          {% for s in result.suggestions %}
+            <li>{{ s }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+    </section>
+  {% endif %}
+</div>
 </body>
 </html>

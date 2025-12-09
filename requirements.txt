@@ -1,6 +1,7 @@
+# File: requirements.txt
 flask
 python-dotenv
-azure-ai-textanalytics
 pypdf
 python-docx
-gunicorn
+azure-ai-textanalytics
+werkzeug
