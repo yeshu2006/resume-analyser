@@ -5,3 +5,4 @@ pypdf
 python-docx
 azure-ai-textanalytics
 werkzeug
+gunicorn
