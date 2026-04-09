@@ -22,10 +22,10 @@ A high-end, AI-powered Resume Analyzer built with Python and Azure AI Text Analy
 
 *(Replace these image paths with actual screenshots of your new dashboard!)*
 
-![Home Screen / Upload](uploads/home.png)
+![Home Screen / Upload](uploads/HOME.png)
 *Modern Drag-and-Drop Interface*
 
-![Results Dashboard](uploads/content.png)
+![Results Dashboard](uploads/CONTENT.png)
 *Detailed Azure AI Analysis Dashboard*
 
 ---
