@@ -1,10 +1,11 @@
 # File: app.py
 import os
+import tempfile
 from flask import Flask, render_template, request, flash, redirect, url_for
 from werkzeug.utils import secure_filename
 from analyzer import analyze_resume_with_job
 
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = tempfile.gettempdir()
 ALLOWED_EXTENSIONS = {"pdf", "docx"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 

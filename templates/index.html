@@ -2,165 +2,344 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Resume Analyzer Using Azure AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Azure AI Resume Analyzer</title>
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
+  <!-- Ambient glowing background -->
+  <div class="ambient-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="loader">
+      <div class="spinner"></div>
+      <p>Analyzing Resume with Azure AI...</p>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Global Flash Messages from Flask mapped to JS toasts -->
+  <script>
+    const flashMessages = [
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for msg in messages %}
+            "{{ msg | replace('\"', '\\\"') }}"{% if not loop.last %},{% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    ];
+  </script>
+
   <div class="container">
-    <header>
-      <h1>Resume Analyzer Using Azure AI</h1>
-      <p class="subtitle">
-        Upload your resume and match it against a Job Description using Azure AI.
-      </p>
+    <header class="app-header">
+      <div class="logo-area">
+        <i class="fa-solid fa-microchip"></i>
+        <h1>Resume Analyzer AI</h1>
+      </div>
+      <p class="subtitle">Extract, Evaluate, and Match resumes against Job Descriptions instantly.</p>
     </header>
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="flash">
-          {% for msg in messages %}
-            <p>{{ msg }}</p>
-          {% endfor %}
+    {% if not result %}
+    <!-- Upload Section: Only show if there's no result yet -->
+    <section class="upload-section glass-panel">
+      <form action="{{ url_for('analyze') }}" method="POST" enctype="multipart/form-data" id="upload-form">
+        
+        <div class="form-grid">
+          <!-- File Upload dropzone -->
+          <div class="input-group">
+            <label>1. Upload Resume</label>
+            <div id="dropzone" class="dropzone">
+              <input type="file" name="resume" id="resume" accept=".pdf,.docx" required />
+              <div class="drop-content">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span id="file-name-display">Drag & Drop PDF/DOCX or <span class="browse-link">Browse</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- JD Textarea -->
+          <div class="input-group">
+            <label for="job_description">2. Target Job Description</label>
+            <textarea
+              name="job_description"
+              id="job_description"
+              placeholder="Paste the target job description requirements here..."
+              required
+            >{{ job_description or '' }}</textarea>
+          </div>
         </div>
-      {% endif %}
-    {% endwith %}
 
-    <!-- Upload Form -->
-    <section class="upload-section">
-      <form action="{{ url_for('analyze') }}" method="POST" enctype="multipart/form-data">
-        <label for="resume">Upload Resume (PDF / DOCX)</label>
-        <input
-          type="file"
-          name="resume"
-          id="resume"
-          accept=".pdf,.docx"
-          required
-        />
-
-        <label for="job_description">Paste Job Description</label>
-        <textarea
-          name="job_description"
-          id="job_description"
-          rows="6"
-          placeholder="Paste the Job Description here..."
-          autocomplete="off"
-          required
-        >{{ job_description or '' }}</textarea>
-
-        <button type="submit">Analyze & Match</button>
+        <button type="submit" class="btn-glow" id="submit-btn">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze Resume
+        </button>
       </form>
     </section>
+    {% endif %}
 
-    <!-- Results -->
+    <!-- Results Dashboard -->
     {% if result %}
-      <section class="results-section">
-        <h2>Analysis Summary</h2>
+    <div class="results-dashboard">
+      <div class="dashboard-header">
+        <h2 class="dashboard-title"><i class="fa-solid fa-chart-pie"></i> Analysis Dashboard</h2>
+        <a href="{{ url_for('index') }}" class="btn-outline"><i class="fa-solid fa-rotate-left"></i> Run Another</a>
+      </div>
 
-        <!-- Job Description Preview -->
-        <div class="card">
-          <h3>Job Description Used</h3>
-          <p class="jd-preview">
-            {{ result.job_description[:400] }}{% if result.job_description and result.job_description|length > 400 %}...{% endif %}
-          </p>
-        </div>
-
-        <!-- Basic Details -->
-        <div class="card">
-          <h3>Basic Details</h3>
+      <div class="dashboard-grid">
+        
+        <!-- Quick Stats & Match Score -->
+        <div class="glass-panel main-score-col score-card">
+          <h3>Job Match Rating</h3>
           
-          <p><strong>Email:</strong> {{ result.email or "Not detected" }}</p>
-          <p><strong>Phone:</strong> {{ result.phone or "Not detected" }}</p>
-        </div>
-
-        <!-- Graphical Match Score -->
-        <div class="card">
-          <h3>Job Match Score</h3>
-          <div class="meter">
-            <span style="width: {{ result.match_percentage }}%"></span>
+          <div class="circular-progress" data-percentage="{{ result.match_percentage }}">
+            <svg viewBox="0 0 36 36" class="circular-chart">
+              <path class="circle-bg"
+                d="M18 2.0845
+                  a 15.9155 15.9155 0 0 1 0 31.831
+                  a 15.9155 15.9155 0 0 1 0 -31.831"
+              />
+              <path class="circle" id="score-circle"
+                stroke-dasharray="0, 100"
+                d="M18 2.0845
+                  a 15.9155 15.9155 0 0 1 0 31.831
+                  a 15.9155 15.9155 0 0 1 0 -31.831"
+              />
+              <text x="18" y="20.35" class="percentage">{{ result.match_percentage }}%</text>
+            </svg>
           </div>
-          <p class="score-text">{{ result.match_percentage }}% match with JD</p>
+          <p class="score-label">Analyzed against Job Description</p>
         </div>
 
-        <!-- Skills Detected -->
-        <div class="card">
-          <h3>Skills Detected ({{ result.skills_detected|length }})</h3>
-          {% if result.skills_detected %}
-            <ul class="chips">
-              {% for sk in result.skills_detected %}
-                <li class="chip">{{ sk }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p>No specific skills detected.</p>
-          {% endif %}
+        <!-- Candidate Identity -->
+        <div class="glass-panel candidate-card">
+          <h3><i class="fa-regular fa-id-card"></i> Candidate Info</h3>
+          <div class="info-list">
+            <div class="info-item">
+              <div class="info-icon"><i class="fa-solid fa-user"></i></div>
+              <div class="info-data">
+                <span class="lbl">Name</span>
+                <span class="val">{{ result.name or "Not detected" }}</span>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><i class="fa-solid fa-envelope"></i></div>
+              <div class="info-data">
+                <span class="lbl">Email</span>
+                <span class="val">{{ result.email or "Not detected" }}</span>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-icon"><i class="fa-solid fa-phone"></i></div>
+              <div class="info-data">
+                <span class="lbl">Phone</span>
+                <span class="val">{{ result.phone or "Not detected" }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Experience Summary -->
-        <div class="card">
-          <h3>Experience Summary ({{ result.experience_summary|length }} lines)</h3>
-          {% if result.experience_summary %}
-            <ul>
-              {% for line in result.experience_summary %}
-                <li>{{ line }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p>
-              No clear experience lines detected. Consider adding an Experience section
-              with role, company, duration, and responsibilities.
-            </p>
-          {% endif %}
+        <!-- Skills & Keywords Column -->
+        <div class="glass-panel wide-span">
+          <div class="split-row">
+            <!-- Detected Skills -->
+            <div class="split-col">
+              <h3><i class="fa-solid fa-bolt"></i> Hard Skills Detected</h3>
+              {% if result.skills_detected %}
+                <ul class="chips">
+                  {% for sk in result.skills_detected %}
+                    <li class="chip">{{ sk }}</li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-muted">No explicit skills detected.</p>
+              {% endif %}
+            </div>
+
+            <!-- Matched vs Missing Keywords -->
+            <div class="split-col">
+              <h3><i class="fa-solid fa-bullseye"></i> JD Keyword Matching</h3>
+              <div class="keyword-groups">
+                <div class="kw-group">
+                  <h4><i class="fa-solid fa-check text-green"></i> Found</h4>
+                  {% if result.matched_keywords %}
+                    <ul class="chips">
+                      {% for kw in result.matched_keywords %}
+                        <li class="chip chip-success">{{ kw }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <span class="text-muted">None</span>
+                  {% endif %}
+                </div>
+                
+                <div class="kw-group">
+                  <h4><i class="fa-solid fa-xmark text-red"></i> Missing</h4>
+                  {% if result.missing_keywords %}
+                    <ul class="chips">
+                      {% for kw in result.missing_keywords %}
+                        <li class="chip chip-danger">{{ kw }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <span class="text-muted">None</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Matched Keywords -->
-        <div class="card">
-          <h3>Matched Job Keywords</h3>
-          {% if result.matched_keywords %}
-            <ul class="chips">
-              {% for kw in result.matched_keywords %}
-                <li class="chip chip-success">{{ kw }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p>No strong keyword matches found.</p>
-          {% endif %}
-        </div>
-
-        <!-- Missing Keywords -->
-        <div class="card">
-          <h3>Missing Job Keywords</h3>
-          {% if result.missing_keywords %}
-            <ul class="chips">
-              {% for kw in result.missing_keywords %}
-                <li class="chip chip-danger">{{ kw }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p>No major missing keywords detected.</p>
-          {% endif %}
-        </div>
-
-        <!-- Missing Sections -->
-        <div class="card">
-          <h3>Missing Resume Sections</h3>
-          {% if result.missing_sections %}
-            <p>{{ result.missing_sections | join(", ") }}</p>
-          {% else %}
-            <p>All core sections appear to be present.</p>
-          {% endif %}
-        </div>
-
-        <!-- Suggestions -->
-        <div class="card">
-          <h3>Suggestions</h3>
-          <ul>
+        <!-- Missing Sections & Suggestions -->
+        <div class="glass-panel wide-span highlight-box">
+          <h3><i class="fa-regular fa-lightbulb"></i> Actionable Suggestions</h3>
+          <ul class="suggestion-list">
             {% for s in result.suggestions %}
-              <li>{{ s }}</li>
+              <li><i class="fa-solid fa-angle-right"></i> {{ s }}</li>
             {% endfor %}
           </ul>
+
+          {% if result.missing_sections %}
+            <div class="missing-sections">
+              <strong>Warning: Missing core sections:</strong>
+              <div class="chips small-chips">
+                {% for sec in result.missing_sections %}
+                  <span class="chip chip-warning">{{ sec }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
         </div>
-      </section>
+
+        <!-- Experience Insight -->
+        <div class="glass-panel wide-span experience-log">
+          <h3><i class="fa-solid fa-briefcase"></i> Experience Extraction</h3>
+          <div class="log-terminal">
+            {% if result.experience_summary %}
+              <ul>
+                {% for line in result.experience_summary %}
+                  <li>> {{ line }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p>> No professional experience bullet points detected.</p>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </div>
     {% endif %}
+
   </div>
+
+  <script>
+    // Toasts logic
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<i class="fa-solid fa-circle-info margin-right"></i> <span>${message}</span>`;
+      container.appendChild(toast);
+      
+      // Trigger animation
+      setTimeout(() => toast.classList.add('show'), 10);
+      
+      // Remove after 4 seconds
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Show initial flash messages from standard Flask
+    if (flashMessages && flashMessages.length > 0) {
+      flashMessages.forEach(msg => {
+        showToast(msg, 'error'); 
+      });
+    }
+
+    // Form logic & interaction
+    const formElement = document.getElementById('upload-form');
+    if (formElement) {
+      formElement.addEventListener('submit', () => {
+        document.getElementById('loading-overlay').classList.add('active');
+      });
+
+      // Dropzone logic
+      const dropzone = document.getElementById('dropzone');
+      const fileInput = document.getElementById('resume');
+      const fileNameDisplay = document.getElementById('file-name-display');
+
+      // Click to upload
+      dropzone.addEventListener('click', () => fileInput.click());
+
+      // Drag and drop cosmetics
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, preventDefaults, false);
+      });
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, () => dropzone.classList.add('highlight'), false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, () => dropzone.classList.remove('highlight'), false);
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        let dt = e.dataTransfer;
+        let files = dt.files;
+        if(files && files.length > 0) {
+          fileInput.files = files; // Assign files to input
+          updateFileName(files[0]);
+        }
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          updateFileName(e.target.files[0]);
+        }
+      });
+
+      function updateFileName(file) {
+        fileNameDisplay.innerHTML = `<span class="selected-file"><i class="fa-solid fa-file-pdf"></i> ${file.name}</span>`;
+        dropzone.classList.add('has-file');
+      }
+    }
+
+    // Circular Progress Animation logic
+    const progressEl = document.querySelector('.circular-progress');
+    if (progressEl) {
+      const percentage = parseInt(progressEl.getAttribute('data-percentage'), 10);
+      const circle = document.getElementById('score-circle');
+      
+      // Delay animation slightly for dramatic effect
+      setTimeout(() => {
+        circle.setAttribute('stroke-dasharray', `${percentage}, 100`);
+        if (percentage < 60) circle.style.stroke = '#ff4d4d';
+        else if (percentage < 80) circle.style.stroke = '#fca311';
+      }, 300);
+    }
+  </script>
 </body>
 </html>
